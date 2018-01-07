@@ -6,6 +6,7 @@
 package server
 
 import (
+	"infion/common/messages"
 	"strconv"
 	"fmt"
 	"net"
@@ -59,6 +60,9 @@ type Server struct {
 
 	// clientPool holds the ClientPool object 
 	clientPool	*ClientPool
+
+	// messageHandlers defines a new message handling pool
+	messageHandlers *messages.MessageHandlers
 }
 
 // NewServer establishes a new UDP server to listen to the incoming
@@ -74,7 +78,8 @@ func NewServer(host string, port int) (*Server, error) {
 		return nil, NewConnectionError(ADDRESSERROR, "Unable to resolve UDP address", ERROR)
 	}
 
-	server.clientPool = NewClientPool()	
+	server.clientPool = NewClientPool()
+	server.messageHandlers = messages.NewMessageHandler()	
 	return server,nil
 }
 
