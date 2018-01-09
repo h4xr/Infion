@@ -6,10 +6,11 @@
 package server
 
 import (
-	"infion/common/messages"
-	"strconv"
+	"strings"
 	"fmt"
+	"infion/common/messages"
 	"net"
+	"strconv"
 )
 
 // Constants
@@ -18,24 +19,24 @@ const (
 	BUFFERSIZE = 32768
 
 	// Error severity related constants
-	FATAL = "FATAL"
+	FATAL   = "FATAL"
 	WARNING = "WARNING"
-	ERROR = "ERROR"
+	ERROR   = "ERROR"
 
 	// Connection Error Related Error Numbers
-	ADDRESSERROR = 100
+	ADDRESSERROR     = 100
 	CONNECTIONFAILED = 101
 	CONNECTIONCLOSED = 102
-	PARTIALDATA = 103
+	PARTIALDATA      = 103
 )
 
 // ConnectionError defines the structure for providing information
 // related to the errors that happen during the establishment of
 // connection for the server or the client.
 type ConnectionError struct {
-	errNo		int
-	errMsg		string
-	severity	string
+	errNo    int
+	errMsg   string
+	severity string
 }
 
 // NewConnectionError returns a new error related to the connection
@@ -52,14 +53,14 @@ func (connError *ConnectionError) Error() string {
 type Server struct {
 	// udpAddr is the UDP translated address by the net package
 	// to be used by the connection library
-	udpAddr		*net.UDPAddr
+	udpAddr *net.UDPAddr
 
 	// udpConn is the object instance that is generated after the
 	// call to the connection function.
-	udpConn		*net.UDPConn
+	udpConn *net.UDPConn
 
-	// clientPool holds the ClientPool object 
-	clientPool	*ClientPool
+	// clientPool holds the ClientPool object
+	clientPool *ClientPool
 
 	// messageHandlers defines a new message handling pool
 	messageHandlers *messages.MessageHandlers
@@ -79,10 +80,9 @@ func NewServer(host string, port int) (*Server, error) {
 	}
 
 	server.clientPool = NewClientPool()
-	server.messageHandlers = messages.NewMessageHandler()	
-	return server,nil
+	server.messageHandlers = messages.NewMessageHandler()
+	return server, nil
 }
-
 
 // Listen makes the server to accept new connections as they arrive
 // while also maintaining a queue of the address units that are connecting to
@@ -111,8 +111,68 @@ func (s *Server) Listen() error {
 			fmt.Println("Error occured while trying to read data")
 		}
 		fmt.Println("Read ", strconv.Itoa(bytesRead), "from ", clientAddr)
+		go s.IncomingMessageHandler(clientAddr, bytesRead, buf)
 	}
 
 	return nil
 }
 
+// RegisterHandler is a special function for handling new client registrations
+// to the server.
+func (s *Server) RegisterHandler(clientAddr *net.UDPAddr, payload string) ([]byte, error) {
+	client := NewClient(clientAddr, CLIENTACTIVE)
+	topics := strings.Split(payload, "TOPICS: ")
+	if len(topics) < 2 {
+		return nil, fmt.Errorf("No topics to subscribe")
+	}
+	topicList := strings.Split(topics[1], ",")
+	for _, topicName := range topicList {
+		s.clientPool.AddClient(topicName, *client)
+	}
+	regAck := messages.NewMessage(messages.MessageTypes["REGISTERACK"], "")
+	response, err := regAck.ToJSON()
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+// IncomingMessageHandler handles the incoming messages and decides the 
+// appropriate message handler to be executed for the message. If there is
+// a response from the handler, the response is communicated back to the client
+// using the server.
+func (s *Server) IncomingMessageHandler(clientAddr *net.UDPAddr, bytesRead int, message []byte) error {
+	var response []byte
+	// Convert the read message packet into the Message structure so we can 
+	// access it.
+	packet, err := messages.FromJSON(message[:bytesRead])
+	if err != nil {
+		return fmt.Errorf("Error reading message from the client")
+	}
+
+	// Validate if the data is intact or corrupt
+	if packet.VerifyMessage() != true {
+		return fmt.Errorf("Packet corrupted")
+	}
+
+	// Validate if we support the message type described by the packet or not
+	if packet.ValidateType() != true {
+		return fmt.Errorf("Not a supported message type")
+	}
+
+	// Determine if we have a special packet type here
+	packetType := packet.GetType()
+	switch {
+	case packetType == messages.MessageTypes["REGISTER"]:
+		response, err = s.RegisterHandler(clientAddr, packet.GetPayload())
+		if err != nil {
+			return err
+		}
+	default:
+		return nil
+	}
+	if response != nil {
+		s.udpConn.WriteToUDP(response, clientAddr)
+	}
+	return nil
+}
