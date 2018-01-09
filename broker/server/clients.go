@@ -48,11 +48,12 @@ func (c *Client) SetState(state bool) {
 // the client has subscribed to.
 type ClientPool struct {
 	pool	map[string][]Client
+	clientList	map[Client]bool
 }
 
 // NewClientPool returns a new client pool in which new clients can be added
 func NewClientPool() *ClientPool {
-	return &ClientPool{pool: make(map[string][]Client)}
+	return &ClientPool{pool: make(map[string][]Client), clientList: make(map[Client]bool)}
 }
 
 // AddClient adds a new client to the client pool
@@ -62,6 +63,7 @@ func (cp *ClientPool) AddClient(topic string, client Client) {
 	} else {
 		cp.pool[topic] = []Client{client}
 	}
+	cp.clientList[client] = true
 }
 
 // GetClients returns the clients subscribed to the provided topic
