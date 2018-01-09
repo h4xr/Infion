@@ -58,3 +58,13 @@ func GenericHandler(payload string) ([]byte, error) {
 	fmt.Println(payload)
 	return []byte(payload), nil
 }
+
+// PingHandler defines a handler for PING type messages
+func PingHandler(payload string) ([]byte, error) {
+	message := NewMessage(MessageTypes["PONG"], "")
+	messageJSON, err := message.ToJSON()
+	if err != nil {
+		return nil, err
+	}
+	return messageJSON, nil
+}
