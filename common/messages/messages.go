@@ -18,19 +18,28 @@ type MessageType uint8
 var MessageTypes = map[string]MessageType{
 	// TEST message type. Used for testing the connection
 	"TEST": 0x00,
+	
 	// PING message type. Used to check liveliness of the recepient
 	"PING": 0x01,
+	
 	// SHUTDOWN message type. Used for shutting down the client.
 	"SHUTDOWN": 0x02,
+	
 	// CLOSE message type. Used to disconnect the client.
 	"CLOSE": 0x03,
+	
 	// MAINTAINANCE message type. Used to send client into maintainance.
 	"MAINTAINANCE": 0x04,
+	
 	// CONTROL message type. Used to make the client switch to operational mode
 	// from maintainance mode.
 	"CONTROL": 0x05,
+	
 	// REGISTER message type. Used to register client to broker.
 	"REGISTER": 0x06,
+
+	// PONG message type. Used to indicate a reply to the incoming PING.
+	"PONG": 0x07,
 }
 
 // Message defines a structure for incoming and outgoing messages
