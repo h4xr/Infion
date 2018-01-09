@@ -40,6 +40,9 @@ var MessageTypes = map[string]MessageType{
 
 	// PONG message type. Used to indicate a reply to the incoming PING.
 	"PONG": 0x07,
+
+	// REGISTERACK message type. Used to signal registration was successful.
+	"REGISTERACK": 0x08,
 }
 
 // Message defines a structure for incoming and outgoing messages
