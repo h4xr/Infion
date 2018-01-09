@@ -7,6 +7,7 @@
 package messages
 
 import (
+	"fmt"
 	"encoding/json"
 )
 
@@ -14,22 +15,22 @@ import (
 type MessageType uint8
 
 // MessageTypes supported by the messages engine
-var MessageTypes = map[MessageType]string{
+var MessageTypes = map[string]MessageType{
 	// TEST message type. Used for testing the connection
-	0x00: "TEST",
+	"TEST": 0x00,
 	// PING message type. Used to check liveliness of the recepient
-	0x01: "PING",
+	"PING": 0x01,
 	// SHUTDOWN message type. Used for shutting down the client.
-	0x02: "SHUTDOWN",
+	"SHUTDOWN": 0x02,
 	// CLOSE message type. Used to disconnect the client.
-	0x03: "CLOSE",
+	"CLOSE": 0x03,
 	// MAINTAINANCE message type. Used to send client into maintainance.
-	0x04: "MAINTAINANCE",
+	"MAINTAINANCE": 0x04,
 	// CONTROL message type. Used to make the client switch to operational mode
 	// from maintainance mode.
-	0x05: "CONTROL",
+	"CONTROL": 0x05,
 	// REGISTER message type. Used to register client to broker.
-	0x06: "REGISTER",
+	"REGISTER": 0x06,
 }
 
 // Message defines a structure for incoming and outgoing messages
@@ -81,8 +82,10 @@ func FromJSON(data []byte) (*Message, error) {
 func (m Message) ToJSON() ([]byte, error) {
 	data, err := json.Marshal(m)
 	if err != nil {
+		fmt.Println("Error in converting data", err)
 		return nil, err
 	}
+	fmt.Println("Data converted successfully")
 	return data, nil
 }
 
@@ -99,8 +102,10 @@ func (m Message) GetPayload() string {
 // ValidateType returns a bool indicating if the message type provided is
 // valid or not.
 func (m Message) ValidateType() bool {
-	if _, ok := MessageTypes[m.MsgType]; ok {
-		return true
+	for _, v := range MessageTypes {
+		if m.MsgType == v {
+			return true
+		}
 	}
 	return false
 }
